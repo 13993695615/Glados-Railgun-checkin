@@ -105,8 +105,8 @@ class Config:
     """默认是否输出详细响应"""
     DEFAULT_VERBOSE = False
 
-    """默认域名"""
-    DOMAINS = ["glados.cloud", "railgun.info"]
+    """默认域名 (增加官方主站 glados.rocks)"""
+    DOMAINS = ["glados.rocks", "glados.cloud", "railgun.info"]
 
     """兑换计划列表"""
     EXCHANGE_PLANS = {
@@ -212,6 +212,8 @@ class API:
         return {
             "origin": f"https://{self.domain}",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36",
+            "content-type": "application/json;charset=UTF-8",
+            "accept": "application/json, text/plain, */*",
         }
 
     def _log(self, level: str, emoji: str, message: str, force: bool = False) -> None:
@@ -238,7 +240,8 @@ class API:
 
         try:
             if method.upper() == "POST":
-                response = self.session.post(url, headers=session_headers, data=data, timeout=(60, 120))
+                # 修改点：确保以 JSON 格式发送 payload，防止服务器拒收
+                response = self.session.post(url, headers=session_headers, json=data, timeout=(60, 120))
             elif method.upper() == "GET":
                 response = self.session.get(url, headers=session_headers, timeout=(60, 120))
             else:
@@ -255,7 +258,8 @@ class API:
 
     def _get_checkin_data(self) -> Dict[str, str]:
         """获取签到数据"""
-        return {"token": self.domain}
+        # 核心修改点：丢弃旧的动态 domain 验证，写死最新的官方 payload 标识符
+        return {"token": "glados.one"}
 
     @log_method
     def checkin(self, cookies: str) -> Dict[str, Union[str, CheckinStatus]]:
@@ -272,7 +276,12 @@ class API:
         }
 
         if response:
-            data = response.json()
+            try:
+                data = response.json()
+            except ValueError:
+                self._log("warning", LogEmoji.WARNING, f"无法解析响应 JSON: {response.text}", force=True)
+                data = {}
+
             code = data.get("code", -2)
             message = data.get("message", "无消息字段")
             points = str(data.get("points", 0))
@@ -311,7 +320,11 @@ class API:
         response = self._make_request(url, "GET", cookies=cookies)
 
         if response:
-            data = response.json()
+            try:
+                data = response.json()
+            except ValueError:
+                data = {}
+                
             code = data.get("code", -2)
             left_days = data.get("data", {}).get("leftDays", None)
 
@@ -333,7 +346,11 @@ class API:
         response = self._make_request(url, "GET", cookies=cookies)
 
         if response:
-            data = response.json()
+            try:
+                data = response.json()
+            except ValueError:
+                data = {}
+                
             code = data.get("code", -2)
             points = data.get("points", None)
 
@@ -357,7 +374,11 @@ class API:
         response = self._make_request(url, "POST", {"planType": plan}, cookies)
 
         if response:
-            data = response.json()
+            try:
+                data = response.json()
+            except ValueError:
+                data = {}
+                
             code = data.get("code", -2)
             message = data.get("message", "未知错误")
 
