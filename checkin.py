@@ -106,7 +106,7 @@ class Config:
     DEFAULT_VERBOSE = False
 
     """默认域名 (增加官方主站 glados.rocks)"""
-    DOMAINS = ["glados.rocks", "glados.cloud", "railgun.info"]
+    DOMAINS = ["glados.rocks"]
 
     """兑换计划列表"""
     EXCHANGE_PLANS = {
